@@ -1,4 +1,4 @@
 package pl.mmakos.mortgage.model;
 
-public record EstateInsuranceParams(double value, int amount, TimePeriod period) {
+public record EstateInsuranceParams(double value, double amount, TimePeriod period) {
 }

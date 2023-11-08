@@ -3,6 +3,8 @@ package pl.mmakos.mortgage.view;
 import pl.mmakos.mortgage.utils.DateUtils;
 
 import javax.swing.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 
 public interface Spinner {
@@ -24,6 +26,11 @@ public interface Spinner {
     public String stringValue() {
       return java.lang.Double.toString(doubleValue());
     }
+
+    @Override
+    protected JComponent createEditor(SpinnerModel model) {
+      return new NumberEditor(this, "#.##### '%'");
+    }
   }
 
   class Date extends JSpinner {
@@ -33,6 +40,14 @@ public interface Spinner {
 
     public String stringValue() {
       return dateValue().toString();
+    }
+  }
+
+  class Currency extends Double {
+    @Override
+    protected JComponent createEditor(SpinnerModel model) {
+      DecimalFormat currencyFormat = (DecimalFormat) NumberFormat.getCurrencyInstance();
+      return new NumberEditor(this, currencyFormat.toPattern());
     }
   }
 }

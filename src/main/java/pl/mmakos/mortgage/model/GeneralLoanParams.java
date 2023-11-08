@@ -4,8 +4,8 @@ import pl.mmakos.mortgage.utils.DateUtils;
 
 import java.time.LocalDate;
 
-public record GeneralLoanParams(int loanValue, int loanInstallments, double margin, double baseRate, double provision,
-                                int otherCosts, InstallmentType installmentType, LocalDate paymentDate,
+public record GeneralLoanParams(double loanValue, int loanInstallments, double margin, double baseRate, double provision,
+                                double otherCosts, InstallmentType installmentType, LocalDate paymentDate,
                                 LocalDate firstInstallmentDate, boolean installmentsOnlyInWorkDays) {
   public LocalDate getInstallmentDate(int number) {
     if (number < 1) throw new IllegalArgumentException("Installment rate must be greater than 0");

@@ -1,9 +1,7 @@
 package pl.mmakos.mortgage;
 
 import lombok.extern.slf4j.Slf4j;
-import pl.mmakos.mortgage.model.Installment;
-import pl.mmakos.mortgage.model.LoanParams;
-import pl.mmakos.mortgage.view.MortgageOptionsPanel;
+import pl.mmakos.mortgage.view.MortgageFrame;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,54 +21,26 @@ public class MortgageCalculator {
   public static void main(String[] args) {
     setLookAndFeel();
 
-    JFrame mainFrame = new JFrame(BUNDLE.getString("mortgage.calculator"));
-    MortgageOptionsPanel mortgageOptionsPanel = new MortgageOptionsPanel();
+    Properties properties = new Properties();
     try (InputStream stream = Files.newInputStream(Path.of(System.getenv("APPDATA"), CONFIG_SAVE_FILE))) {
-      Properties properties = new Properties();
       properties.load(stream);
-      mortgageOptionsPanel.load(properties);
     } catch (IOException e) {
       log.warn("Nie mozna wczytac zapisanej konfiguracji");
     }
+    MortgageFrame mainFrame = new MortgageFrame(MortgageCalculator::saveConfig);
+    mainFrame.load(properties);
 
-    JPanel contentPane = new JPanel(new BorderLayout());
-    JScrollPane scrollPane = new JScrollPane(mortgageOptionsPanel);
-    scrollPane.getVerticalScrollBar().setUnitIncrement(10);
-    contentPane.add(scrollPane, BorderLayout.CENTER);
-    JPanel buttonPanel = getButtonPanel(mortgageOptionsPanel);
-    contentPane.add(buttonPanel, BorderLayout.SOUTH);
-
-    mainFrame.getRootPane().setDefaultButton((JButton) buttonPanel.getComponent(0));
-    mainFrame.setContentPane(contentPane);
-    mainFrame.setSize(600, 900);
+    mainFrame.setSize(1400, 900);
+    mainFrame.setExtendedState(mainFrame.getExtendedState() | Frame.MAXIMIZED_BOTH);
     mainFrame.setVisible(true);
   }
 
-  private static JPanel getButtonPanel(MortgageOptionsPanel mortgageOptionsPanel) {
-    JButton applyButton = new JButton(BUNDLE.getString("button.apply"));
-    applyButton.addActionListener(e -> {
-      LoanParams params = mortgageOptionsPanel.getParams();
-      System.err.println(params);
-      System.err.println();
-      Installment initial = Installment.initial(params);
-      for (Installment installment : initial) {
-        System.err.println(installment);
-      }
-    });
-
-    JButton saveButton = new JButton(BUNDLE.getString("button.save"));
-    saveButton.addActionListener(e -> {
-      try (OutputStream outputStream = Files.newOutputStream(Path.of(System.getenv("APPDATA"), CONFIG_SAVE_FILE))) {
-        mortgageOptionsPanel.store().store(outputStream, "");
-      } catch (IOException ex) {
-        log.error("Nie mozna zapisac konfiguracji", ex);
-      }
-    });
-
-    JPanel panel = new JPanel();
-    panel.add(applyButton);
-    panel.add(saveButton);
-    return panel;
+  private static void saveConfig(Properties properties) {
+    try (OutputStream outputStream = Files.newOutputStream(Path.of(System.getenv("APPDATA"), CONFIG_SAVE_FILE))) {
+      properties.store(outputStream, "");
+    } catch (IOException ex) {
+      log.error("Nie mozna zapisac konfiguracji", ex);
+    }
   }
 
   private static void setLookAndFeel() {

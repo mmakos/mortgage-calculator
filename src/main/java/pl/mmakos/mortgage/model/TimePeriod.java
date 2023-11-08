@@ -19,6 +19,11 @@ public enum TimePeriod {
   private final String singular;
   private final String adverb;
 
+  public double convert(double value, TimePeriod to) {
+    if (this == to) return value;
+    return this == YEAR ? value * 12 : value / 12;
+  }
+
   public int convert(int value, TimePeriod to) {
     if (this == to) return value;
     return this == YEAR ? value * 12 : value / 12;

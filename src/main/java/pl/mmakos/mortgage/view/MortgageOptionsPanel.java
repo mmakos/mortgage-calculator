@@ -1,14 +1,12 @@
 package pl.mmakos.mortgage.view;
 
 import com.jgoodies.forms.layout.CellConstraints;
-import com.jgoodies.forms.layout.FormLayout;
 import pl.mmakos.mortgage.model.*;
 import pl.mmakos.mortgage.utils.DateUtils;
 import pl.mmakos.mortgage.utils.PropertiesUtils;
+import pl.mmakos.mortgage.utils.ViewUtils;
 
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.TitledBorder;
 import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.Date;
@@ -17,16 +15,16 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static pl.mmakos.mortgage.MortgageCalculator.BUNDLE;
+import static pl.mmakos.mortgage.view.TimePeriodPanel.bindTimePeriodSpinner;
 
 @SuppressWarnings({"java:S1192", "java:S3358"})
 public class MortgageOptionsPanel extends JPanel {
-  private final Spinner.Int loanValueSpinner = new Spinner.Int();
-  private final Spinner.Int loanTimeSpinner = new Spinner.Int();
-  private final JComboBox<TimePeriod> loanTimePeriodComboBox = new JComboBox<>(TimePeriod.values());
+  private final Spinner.Currency loanValueSpinner = new Spinner.Currency();
+  private final TimePeriodPanel loanTimePanel = new TimePeriodPanel();
   private final Spinner.Double marginSpinner = new Spinner.Double();
   private final Spinner.Double baseRateSpinner = new Spinner.Double();
   private final Spinner.Double provisionSpinner = new Spinner.Double();
-  private final Spinner.Int otherStartCostsSpinner = new Spinner.Int();
+  private final Spinner.Currency otherStartCostsSpinner = new Spinner.Currency();
   private final JComboBox<InstallmentType> installmentTypeComboBox = new JComboBox<>(InstallmentType.values());
   private final Spinner.Date paymentSpinner = new Spinner.Date();
   private final Spinner.Date firstInstallmentSpinner = new Spinner.Date();
@@ -34,17 +32,16 @@ public class MortgageOptionsPanel extends JPanel {
 
   private final Spinner.Double estateValueSpinner = new Spinner.Double();
   private final JComboBox<TimePeriod> estatePeriodComboBox = new JComboBox<>(TimePeriod.values());
-  private final Spinner.Int estateAmountSpinner = new Spinner.Int();
+  private final Spinner.Currency estateAmountSpinner = new Spinner.Currency();
   private final ActionCheckBox estateAmountEqualsMortgageValueCheckBox = new ActionCheckBox();
 
   private final ActionCheckBox lifeInsuranceCheckBox = new ActionCheckBox();
   private final Spinner.Double lifeValueSpinner = new Spinner.Double();
   private final JComboBox<TimePeriod> lifePeriodComboBox = new JComboBox<>(TimePeriod.values());
-  private final Spinner.Int lifeAmountSpinner = new Spinner.Int();
+  private final Spinner.Currency lifeAmountSpinner = new Spinner.Currency();
   private final ActionCheckBox lifeAmountEqualsMortgageValueCheckBox = new ActionCheckBox();
   private final ActionCheckBox lifeInAdvanceCheckBox = new ActionCheckBox();
-  private final Spinner.Int lifeInAdvanceTimeSpinner = new Spinner.Int();
-  private final JComboBox<TimePeriod> lifeInAdvanceTimePeriodComboBox = new JComboBox<>(TimePeriod.values());
+  private final TimePeriodPanel lifeInAdvanceTimePanel = new TimePeriodPanel();
   private final ActionCheckBox lifeValueInAdvanceCheckBox = new ActionCheckBox();
   private final Spinner.Double lifeValueInAdvanceValueSpinner = new Spinner.Double();
 
@@ -54,9 +51,11 @@ public class MortgageOptionsPanel extends JPanel {
   private final Spinner.Double loan2PercentValueSpinner = new Spinner.Double();
 
   private final ActionCheckBox excessCheckBox = new ActionCheckBox();
-  private final Spinner.Int excessFromSpinner = new Spinner.Int();
-  private final JComboBox<TimePeriod> excessFromPeriodComboBox = new JComboBox<>(TimePeriod.values());
-  private final Spinner.Int excessValueSpinner = new Spinner.Int();
+  private final JRadioButton excessValueRadio = new JRadioButton();
+  private final JRadioButton excessToValueRadio = new JRadioButton();
+  private final TimePeriodPanel excessFromTimePanel = new TimePeriodPanel();
+  private final Spinner.Currency excessValueSpinner = new Spinner.Currency();
+  private final Spinner.Currency excessToValueSpinner = new Spinner.Currency();
   private final JComboBox<TimePeriod> excessValuePeriodComboBox = new JComboBox<>(TimePeriod.values());
   private JButton removeButton;
 
@@ -73,12 +72,12 @@ public class MortgageOptionsPanel extends JPanel {
 
   public LoanParams getParams() {
     GeneralLoanParams general = new GeneralLoanParams(
-            loanValueSpinner.intValue(),
-            getMonthPeriod(loanTimeSpinner, loanTimePeriodComboBox),
+            loanValueSpinner.doubleValue(),
+            loanTimePanel.getMonthPeriod(),
             marginSpinner.doubleValue() / 100.,
             baseRateSpinner.doubleValue() / 100.,
             provisionSpinner.doubleValue() / 100.,
-            otherStartCostsSpinner.intValue(),
+            otherStartCostsSpinner.doubleValue(),
             (InstallmentType) installmentTypeComboBox.getSelectedItem(),
             paymentSpinner.dateValue(),
             firstInstallmentSpinner.dateValue(),
@@ -88,19 +87,19 @@ public class MortgageOptionsPanel extends JPanel {
     EstateInsuranceParams estateInsurance = new EstateInsuranceParams(
             estateValueSpinner.doubleValue() / 100.,
             estateAmountEqualsMortgageValueCheckBox.isSelected() ?
-                    loanValueSpinner.intValue() :
-                    estateAmountSpinner.intValue(),
+                    loanValueSpinner.doubleValue() :
+                    estateAmountSpinner.doubleValue(),
             (TimePeriod) estatePeriodComboBox.getSelectedItem()
     );
 
     LifeInsuranceParams lifeInsurance = !lifeInsuranceCheckBox.isSelected() ? null : new LifeInsuranceParams(
             lifeValueSpinner.doubleValue() / 100.,
             lifeAmountEqualsMortgageValueCheckBox.isSelected() ?
-                    loanValueSpinner.intValue() :
-                    lifeAmountSpinner.intValue(),
+                    loanValueSpinner.doubleValue() :
+                    lifeAmountSpinner.doubleValue(),
             (TimePeriod) lifePeriodComboBox.getSelectedItem(),
             lifeInAdvanceCheckBox.isSelected() ?
-                    getMonthPeriod(lifeInAdvanceTimeSpinner, lifeInAdvanceTimePeriodComboBox) : 0,
+                    lifeInAdvanceTimePanel.getMonthPeriod() : 0,
             lifeValueInAdvanceCheckBox.isSelected() ?
                     lifeValueInAdvanceValueSpinner.doubleValue() / 100. :
                     lifeValueSpinner.doubleValue() / 100.
@@ -115,9 +114,10 @@ public class MortgageOptionsPanel extends JPanel {
     );
 
     ExcessesParams excesses = !excessCheckBox.isSelected() ? null : new ExcessesParams(
-            getMonthPeriod(excessFromSpinner, excessFromPeriodComboBox),
+            excessFromTimePanel.getMonthPeriod(),
             (TimePeriod) excessValuePeriodComboBox.getSelectedItem(),
-            excessValueSpinner.intValue()
+            excessToValueRadio.isSelected() ? excessToValueSpinner.doubleValue() : excessValueSpinner.doubleValue(),
+            excessToValueRadio.isSelected()
     );
 
     return new LoanParams(
@@ -131,8 +131,8 @@ public class MortgageOptionsPanel extends JPanel {
   }
 
   private JPanel getGeneralPanel() {
-    JPanel panel = new JPanel(getFormLayout(3, 10));
-    panel.setBorder(createTitledBorder(BUNDLE.getString("panel.general")));
+    JPanel panel = new JPanel(ViewUtils.getFormLayout(2, 10));
+    panel.setBorder(ViewUtils.createTitledBorder(BUNDLE.getString("panel.general")));
 
     JLabel loanValueLabel = new JLabel(BUNDLE.getString("panel.general.loanValue"));
     JLabel loanTimeLabel = new JLabel(BUNDLE.getString("panel.general.loanTime"));
@@ -144,13 +144,12 @@ public class MortgageOptionsPanel extends JPanel {
     JLabel paymentDateLabel = new JLabel(BUNDLE.getString("panel.general.paymentDate"));
     JLabel firstInstallmentDateLabel = new JLabel(BUNDLE.getString("panel.general.firstInstallmentDate"));
 
-    loanValueSpinner.setModel(new SpinnerNumberModel(500_000, 0, 10_000_000, 10_000));
-    loanTimeSpinner.setModel(new SpinnerNumberModel(25, 1, 35, 1));
+    loanValueSpinner.setModel(new SpinnerNumberModel(500_000., 0., 10_000_000., 10_000.));
+    loanTimePanel.setSpinnerNumberModel(new SpinnerNumberModel(25, 1, 35, 1));
     marginSpinner.setModel(new SpinnerNumberModel(2., 0., 100., .1));
     baseRateSpinner.setModel(new SpinnerNumberModel(5.67, 0., 100., .1));
-    bindTimePeriodSpinner((SpinnerNumberModel) loanTimeSpinner.getModel(), loanTimePeriodComboBox);
     provisionSpinner.setModel(new SpinnerNumberModel(0.5, 0., 100., .1));
-    otherStartCostsSpinner.setModel(new SpinnerNumberModel(0, 0, 10_000_000, 100));
+    otherStartCostsSpinner.setModel(new SpinnerNumberModel(0., 0., 10_000_000., 100.));
 
     LocalDate now = LocalDate.now();
     Date nowDate = DateUtils.toDate(now);
@@ -175,12 +174,6 @@ public class MortgageOptionsPanel extends JPanel {
 
     installmentOnlyInWorkDayCheckBox.setText(BUNDLE.getString("panel.general.installmentOnlyInWorkDay"));
 
-    JLabel loanValueUnitLabel = new JLabel(BUNDLE.getString("currency"));
-    JLabel marginUnitLabel = new JLabel("%");
-    JLabel baseRateUnitLabel = new JLabel("%");
-    JLabel provisionUnitLabel = new JLabel("%");
-    JLabel otherStartCostsUnitLabel = new JLabel(BUNDLE.getString("currency"));
-
     CellConstraints cc = new CellConstraints();
 
     panel.add(loanValueLabel, cc.xy(1, 1));
@@ -195,7 +188,7 @@ public class MortgageOptionsPanel extends JPanel {
     panel.add(installmentOnlyInWorkDayCheckBox, cc.xy(1, 19));
 
     panel.add(loanValueSpinner, cc.xy(3, 1));
-    panel.add(loanTimeSpinner, cc.xy(3, 3));
+    panel.add(loanTimePanel, cc.xy(3, 3));
     panel.add(marginSpinner, cc.xy(3, 5));
     panel.add(baseRateSpinner, cc.xy(3, 7));
     panel.add(provisionSpinner, cc.xy(3, 9));
@@ -204,26 +197,19 @@ public class MortgageOptionsPanel extends JPanel {
     panel.add(paymentSpinner, cc.xy(3, 15));
     panel.add(firstInstallmentSpinner, cc.xy(3, 17));
 
-    panel.add(loanValueUnitLabel, cc.xy(5, 1));
-    panel.add(loanTimePeriodComboBox, cc.xy(5, 3));
-    panel.add(marginUnitLabel, cc.xy(5, 5));
-    panel.add(baseRateUnitLabel, cc.xy(5, 7));
-    panel.add(provisionUnitLabel, cc.xy(5, 9));
-    panel.add(otherStartCostsUnitLabel, cc.xy(5, 11));
-
     return panel;
   }
 
   private JPanel getEstateInsurancePanel() {
-    JPanel panel = new JPanel(getFormLayout(3, 4));
-    panel.setBorder(createTitledBorder(BUNDLE.getString("panel.estateInsurance")));
+    JPanel panel = new JPanel(ViewUtils.getFormLayout(2, 4));
+    panel.setBorder(ViewUtils.createTitledBorder(BUNDLE.getString("panel.estateInsurance")));
 
     JLabel valueLabel = new JLabel(BUNDLE.getString("panel.estateInsurance.value"));
     JLabel amountLabel = new JLabel(BUNDLE.getString("panel.estateInsurance.amount"));
     JLabel periodLabel = new JLabel(BUNDLE.getString("panel.estateInsurance.period"));
 
     estateValueSpinner.setModel(new SpinnerNumberModel(0.08, 0., 100., 0.01));
-    estateAmountSpinner.setModel(new SpinnerNumberModel(500_000, 0, 10_000_000, 10_000));
+    estateAmountSpinner.setModel(new SpinnerNumberModel(500_000., 0., 10_000_000., 10_000.));
     estatePeriodComboBox.setRenderer(new CustomNameComboBoxRenderer<>(TimePeriod::getAdverb));
 
     estateAmountEqualsMortgageValueCheckBox.setText(BUNDLE.getString("panel.estateInsurance.amountEqualsMortgageValue"));
@@ -231,9 +217,6 @@ public class MortgageOptionsPanel extends JPanel {
     estateAmountSpinner.setEnabled(false);
     estateAmountEqualsMortgageValueCheckBox.addActionListener(e ->
             estateAmountSpinner.setEnabled(!estateAmountEqualsMortgageValueCheckBox.isSelected()));
-
-    JLabel valueUnitLabel = new JLabel("%");
-    JLabel amountUnitLabel = new JLabel(BUNDLE.getString("currency"));
 
     CellConstraints cc = new CellConstraints();
 
@@ -246,15 +229,12 @@ public class MortgageOptionsPanel extends JPanel {
     panel.add(estateAmountSpinner, cc.xy(3, 3));
     panel.add(estatePeriodComboBox, cc.xy(3, 5));
 
-    panel.add(valueUnitLabel, cc.xy(5, 1));
-    panel.add(amountUnitLabel, cc.xy(5, 3));
-
     return panel;
   }
 
   private JPanel getLifeInsurancePanel() {
-    JPanel panel = new JPanel(getFormLayout(3, 7));
-    panel.setBorder(createTitledBorder(BUNDLE.getString("panel.lifeInsurance")));
+    JPanel panel = new JPanel(ViewUtils.getFormLayout(2, 7));
+    panel.setBorder(ViewUtils.createTitledBorder(BUNDLE.getString("panel.lifeInsurance")));
 
     lifeInsuranceCheckBox.setText(BUNDLE.getString("panel.lifeInsurance.enable"));
     JLabel valueLabel = new JLabel(BUNDLE.getString("panel.lifeInsurance.value"));
@@ -262,7 +242,7 @@ public class MortgageOptionsPanel extends JPanel {
     JLabel periodLabel = new JLabel(BUNDLE.getString("panel.lifeInsurance.period"));
 
     lifeValueSpinner.setModel(new SpinnerNumberModel(0.05, 0., 100., 0.01));
-    lifeAmountSpinner.setModel(new SpinnerNumberModel(500_000, 0, 10_000_000, 10_000));
+    lifeAmountSpinner.setModel(new SpinnerNumberModel(500_000., 0., 10_000_000., 10_000.));
     lifePeriodComboBox.setRenderer(new CustomNameComboBoxRenderer<>(TimePeriod::getAdverb));
 
     lifeAmountEqualsMortgageValueCheckBox.setText(BUNDLE.getString("panel.lifeInsurance.amountEqualsMortgageValue"));
@@ -272,15 +252,13 @@ public class MortgageOptionsPanel extends JPanel {
             lifeAmountSpinner.setEnabled(!lifeAmountEqualsMortgageValueCheckBox.isSelected()));
 
     lifeInAdvanceCheckBox.setText(BUNDLE.getString("panel.lifeInsurance.inAdvance"));
-    lifeInAdvanceTimeSpinner.setModel(new SpinnerNumberModel(5, 1, 35, 1));
-    bindTimePeriodSpinner((SpinnerNumberModel) lifeInAdvanceTimeSpinner.getModel(), lifeInAdvanceTimePeriodComboBox);
+    lifeInAdvanceTimePanel.setSpinnerNumberModel(new SpinnerNumberModel(5, 1, 35, 1));
     lifeValueInAdvanceCheckBox.setText(BUNDLE.getString("panel.lifeInsurance.valueInAdvance"));
     lifeValueInAdvanceValueSpinner.setModel(new SpinnerNumberModel(0.05, 0., 100., 0.05));
 
     lifeInsuranceCheckBox.setSelected(true);
     lifeValueInAdvanceCheckBox.setEnabled(false);
-    lifeInAdvanceTimeSpinner.setEnabled(false);
-    lifeInAdvanceTimePeriodComboBox.setEnabled(false);
+    lifeInAdvanceTimePanel.setEnabled(false);
     lifeValueInAdvanceValueSpinner.setEnabled(false);
 
     lifeInsuranceCheckBox.addActionListener(e -> {
@@ -292,25 +270,19 @@ public class MortgageOptionsPanel extends JPanel {
       lifeInAdvanceCheckBox.setEnabled(selected);
       boolean inAdvanceSelected = lifeInAdvanceCheckBox.isSelected();
       lifeValueInAdvanceCheckBox.setEnabled(selected && inAdvanceSelected);
-      lifeInAdvanceTimeSpinner.setEnabled(selected && inAdvanceSelected);
-      lifeInAdvanceTimePeriodComboBox.setEnabled(selected && inAdvanceSelected);
+      lifeInAdvanceTimePanel.setEnabled(selected && inAdvanceSelected);
       lifeValueInAdvanceValueSpinner.setEnabled(selected && inAdvanceSelected && lifeValueInAdvanceCheckBox.isSelected());
     });
 
     lifeInAdvanceCheckBox.addActionListener(e -> {
       boolean selected = lifeInAdvanceCheckBox.isSelected();
       lifeValueInAdvanceCheckBox.setEnabled(selected);
-      lifeInAdvanceTimeSpinner.setEnabled(selected);
-      lifeInAdvanceTimePeriodComboBox.setEnabled(selected);
+      lifeInAdvanceTimePanel.setEnabled(selected);
       lifeValueInAdvanceValueSpinner.setEnabled(selected && lifeValueInAdvanceCheckBox.isSelected());
     });
 
     lifeValueInAdvanceCheckBox.addActionListener(e ->
             lifeValueInAdvanceValueSpinner.setEnabled(lifeValueInAdvanceCheckBox.isSelected()));
-
-    JLabel valueUnitLabel = new JLabel("%");
-    JLabel amountUnitLabel = new JLabel(BUNDLE.getString("currency"));
-    JLabel valueAfterInAdvanceUnitLabel = new JLabel("%");
 
     CellConstraints cc = new CellConstraints();
 
@@ -325,20 +297,15 @@ public class MortgageOptionsPanel extends JPanel {
     panel.add(lifeValueSpinner, cc.xy(3, 3));
     panel.add(lifeAmountSpinner, cc.xy(3, 5));
     panel.add(lifePeriodComboBox, cc.xy(3, 7));
-    panel.add(lifeInAdvanceTimeSpinner, cc.xy(3, 11));
+    panel.add(lifeInAdvanceTimePanel, cc.xy(3, 11));
     panel.add(lifeValueInAdvanceValueSpinner, cc.xy(3, 13));
-
-    panel.add(valueUnitLabel, cc.xy(5, 3));
-    panel.add(amountUnitLabel, cc.xy(5, 5));
-    panel.add(lifeInAdvanceTimePeriodComboBox, cc.xy(5, 11));
-    panel.add(valueAfterInAdvanceUnitLabel, cc.xy(5, 13));
 
     return panel;
   }
 
   private JPanel getPromotionsPanel() {
     promotionsPanel.setLayout(new BoxLayout(promotionsPanel, BoxLayout.Y_AXIS));
-    promotionsPanel.setBorder(createTitledBorder(BUNDLE.getString("panel.promotions")));
+    promotionsPanel.setBorder(ViewUtils.createTitledBorder(BUNDLE.getString("panel.promotions")));
 
     JButton addButton = new JButton("+");
     removeButton = new JButton("-");
@@ -372,11 +339,10 @@ public class MortgageOptionsPanel extends JPanel {
   }
 
   private JPanel get2percentPanel() {
-    JPanel panel = new JPanel(getFormLayout(3, 2));
-    panel.setBorder(createTitledBorder(BUNDLE.getString("panel.2percent")));
+    JPanel panel = new JPanel(ViewUtils.getFormLayout(3, 2));
+    panel.setBorder(ViewUtils.createTitledBorder(BUNDLE.getString("panel.2percent")));
 
     JLabel loan2percentValueLabel = new JLabel(BUNDLE.getString("panel.2percent.value"));
-    JLabel loan2PercentValueUnit = new JLabel("%");
 
     loan2PercentCheckBox.setText(BUNDLE.getString("panel.2percent.enable"));
     loan2PercentValueSpinner.setModel(new SpinnerNumberModel(7.14, 0., 100., 0.1));
@@ -388,57 +354,82 @@ public class MortgageOptionsPanel extends JPanel {
     panel.add(loan2PercentCheckBox, cc.xy(1, 1));
     panel.add(loan2percentValueLabel, cc.xy(1, 3));
     panel.add(loan2PercentValueSpinner, cc.xy(3, 3));
-    panel.add(loan2PercentValueUnit, cc.xy(5, 3));
 
     return panel;
   }
 
   private JPanel getExcessPaymentPanel() {
-    JPanel panel = new JPanel(getFormLayout(1, 3));
-    panel.setBorder(createTitledBorder(BUNDLE.getString("panel.excessPayment")));
+    JPanel panel = new JPanel(ViewUtils.getFormLayout(1, 4));
+    panel.setBorder(ViewUtils.createTitledBorder(BUNDLE.getString("panel.excessPayment")));
 
     JLabel excessFromLabel = new JLabel(BUNDLE.getString("panel.excessPayment.from"));
-    JLabel excessValueLabel = new JLabel(BUNDLE.getString("panel.excessPayment.value"));
-    JLabel excessCurrencyLabel = new JLabel(BUNDLE.getString("currency"));
+    excessValueRadio.setText(BUNDLE.getString("panel.excessPayment.value"));
+    excessToValueRadio.setText(BUNDLE.getString("panel.excessPayment.toValue"));
     excessCheckBox.setText(BUNDLE.getString("panel.excessPayment.enable"));
 
-    excessFromSpinner.setModel(new SpinnerNumberModel(37, 1, 420, 1));
-    excessFromPeriodComboBox.setSelectedItem(TimePeriod.MONTH);
-    bindTimePeriodSpinner((SpinnerNumberModel) excessFromSpinner.getModel(), excessFromPeriodComboBox);
-    excessFromPeriodComboBox.setRenderer(new CustomNameComboBoxRenderer<>(TimePeriod::getAdverb));
+    excessFromTimePanel.setSpinnerNumberModel(new SpinnerNumberModel(37, 1, 420, 1));
+    excessFromTimePanel.setPeriod(TimePeriod.MONTH);
+    excessFromTimePanel.setComboBoxRenderer(new CustomNameComboBoxRenderer<>(TimePeriod::getSingular));
 
-    excessValueSpinner.setModel(new SpinnerNumberModel(1000, 0, 100_000, 100));
-    bindTimePeriodSpinner((SpinnerNumberModel) excessFromSpinner.getModel(), excessFromPeriodComboBox);
-    excessFromPeriodComboBox.setRenderer(new CustomNameComboBoxRenderer<>(TimePeriod::getSingular));
+    excessValueSpinner.setModel(new SpinnerNumberModel(1000., 0., 100_000., 100.));
+    bindTimePeriodSpinner(excessValuePeriodComboBox, excessValueSpinner);
+    excessValuePeriodComboBox.setRenderer(new CustomNameComboBoxRenderer<>(TimePeriod::getAdverb));
+    excessToValueSpinner.setModel(new SpinnerNumberModel(4000., 0., 100_000., 100.));
 
-    excessFromSpinner.setEnabled(false);
-    excessFromPeriodComboBox.setEnabled(false);
+    ButtonGroup valueRadioGroup = new ButtonGroup();
+    valueRadioGroup.add(excessValueRadio);
+    valueRadioGroup.add(excessToValueRadio);
+
+    excessValueRadio.setSelected(true);
+    excessFromTimePanel.setEnabled(false);
     excessValueSpinner.setEnabled(false);
     excessValuePeriodComboBox.setEnabled(false);
+    excessToValueSpinner.setEnabled(false);
+
+    excessValueRadio.addActionListener(e -> {
+      boolean excessSelected = excessCheckBox.isSelected();
+      boolean selected = excessValueRadio.isSelected();
+      excessValueSpinner.setEnabled(selected && excessSelected);
+      excessValuePeriodComboBox.setEnabled(selected && excessSelected);
+      excessToValueSpinner.setEnabled(!selected && excessSelected);
+    });
+
+    excessToValueRadio.addActionListener(e -> {
+      boolean excessSelected = excessCheckBox.isSelected();
+      boolean selected = excessToValueRadio.isSelected();
+      excessValueSpinner.setEnabled(!selected && excessSelected);
+      excessValuePeriodComboBox.setEnabled(!selected && excessSelected);
+      excessToValueSpinner.setEnabled(selected && excessSelected);
+    });
 
     excessCheckBox.addActionListener(e -> {
       boolean selected = excessCheckBox.isSelected();
-      excessFromSpinner.setEnabled(selected);
-      excessFromPeriodComboBox.setEnabled(selected);
-      excessValueSpinner.setEnabled(selected);
-      excessValuePeriodComboBox.setEnabled(selected);
+      excessFromTimePanel.setEnabled(selected);
+      excessValueSpinner.setEnabled(selected && excessValueRadio.isSelected());
+      excessValuePeriodComboBox.setEnabled(selected && excessValueRadio.isSelected());
+      excessToValueSpinner.setEnabled(selected && excessToValueRadio.isSelected());
+      excessValueRadio.setEnabled(selected);
+      excessToValueRadio.setEnabled(selected);
     });
 
     CellConstraints cc = new CellConstraints();
-    JPanel excessFromPanel = new JPanel(getFormLayout(3, 1));
+    JPanel excessFromPanel = new JPanel(ViewUtils.getFormLayout(2, 1));
     excessFromPanel.add(excessFromLabel, cc.xy(1, 1));
-    excessFromPanel.add(excessFromSpinner, cc.xy(3, 1));
-    excessFromPanel.add(excessFromPeriodComboBox, cc.xy(5, 1));
+    excessFromPanel.add(excessFromTimePanel, cc.xy(3, 1));
 
-    JPanel excessValuePanel = new JPanel(getFormLayout(4, 1));
-    excessValuePanel.add(excessValueLabel, cc.xy(1, 1));
+    JPanel excessValuePanel = new JPanel(ViewUtils.getFormLayout(3, 1));
+    excessValuePanel.add(excessValueRadio, cc.xy(1, 1));
     excessValuePanel.add(excessValueSpinner, cc.xy(3, 1));
-    excessValuePanel.add(excessCurrencyLabel, cc.xy(5, 1));
-    excessValuePanel.add(excessValuePeriodComboBox, cc.xy(7, 1));
+    excessValuePanel.add(excessValuePeriodComboBox, cc.xy(5, 1));
+
+    JPanel excessToValuePanel = new JPanel(ViewUtils.getFormLayout(2, 1));
+    excessToValuePanel.add(excessToValueRadio, cc.xy(1, 1));
+    excessToValuePanel.add(excessToValueSpinner, cc.xy(3, 1));
 
     panel.add(excessCheckBox, cc.xy(1, 1));
     panel.add(excessFromPanel, cc.xy(1, 3));
     panel.add(excessValuePanel, cc.xy(1, 5));
+    panel.add(excessToValuePanel, cc.xy(1, 7));
 
     return panel;
   }
@@ -450,98 +441,56 @@ public class MortgageOptionsPanel extends JPanel {
             .map(PromotionPanel.class::cast);
   }
 
-  private static void bindTimePeriodSpinner(SpinnerNumberModel loanPeriodModel, JComboBox<TimePeriod> comboBox) {
-    TimePeriod[] currentPeriod = new TimePeriod[]{TimePeriod.YEAR};
-    comboBox.addActionListener(e -> {
-      TimePeriod selectedItem = (TimePeriod) comboBox.getSelectedItem();
-      changeSpinnerPeriod(currentPeriod[0], selectedItem, loanPeriodModel);
-      currentPeriod[0] = selectedItem;
-    });
-  }
-
-  private static void changeSpinnerPeriod(TimePeriod previous, TimePeriod current, SpinnerNumberModel model) {
-    Number maximum = (Number) model.getMaximum();
-    Number number = model.getNumber();
-
-    model.setMaximum(previous.convert(maximum.intValue(), current));
-    model.setValue(previous.convert(number.intValue(), current));
-  }
-
-  private static int getMonthPeriod(Spinner.Int spinner, JComboBox<TimePeriod> periodComboBox) {
-    TimePeriod selectedPeriod = (TimePeriod) periodComboBox.getSelectedItem();
-    assert selectedPeriod != null;
-    return selectedPeriod.convert(spinner.intValue(), TimePeriod.MONTH);
-  }
-
-  private static FormLayout getFormLayout(int columns, int rows) {
-    return new FormLayout(getPref(columns), getPref(rows));
-  }
-
-  private static String getPref(int cells) {
-    if (cells <= 1) return "pref:grow";
-    return "pref,5px,pref:grow" + ",5px,pref".repeat(Math.max(0, cells - 2));
-  }
-
-  private static Border createTitledBorder(String title) {
-    return BorderFactory.createCompoundBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5),
-            BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
-                            title, TitledBorder.CENTER, TitledBorder.TOP),
-                    BorderFactory.createEmptyBorder(6, 4, 4, 4)));
-  }
-
   private static class PromotionPanel extends JPanel {
     private final Spinner.Double marginSpinner = new Spinner.Double();
-    private final Spinner.Int timeSpinner = new Spinner.Int();
-    private final JComboBox<TimePeriod> periodComboBox = new JComboBox<>(TimePeriod.values());
+    private final TimePeriodPanel timePeriodPanel = new TimePeriodPanel();
 
     private PromotionPanel(boolean isFirst) {
       JLabel marginLabel = new JLabel(BUNDLE.getString("panel.promotion.margin"));
       String timeTextKey = isFirst ? "panel.promotion.timeFirst" : "panel.promotion.timeNext";
-      JLabel timeLabel = new JLabel("% " + BUNDLE.getString(timeTextKey));
+      JLabel timeLabel = new JLabel(BUNDLE.getString(timeTextKey));
 
       marginSpinner.setModel(new SpinnerNumberModel(1.5, -100., 100., 0.1));
-      timeSpinner.setModel(new SpinnerNumberModel(5, 1, 35, 1));
-      bindTimePeriodSpinner((SpinnerNumberModel) timeSpinner.getModel(), periodComboBox);
+      timePeriodPanel.setSpinnerNumberModel(new SpinnerNumberModel(5, 1, 35, 1));
 
       add(marginLabel);
       add(marginSpinner);
       add(timeLabel);
-      add(timeSpinner);
-      add(periodComboBox);
+      add(timePeriodPanel);
     }
 
     private PromotionParams getParams() {
       return new PromotionParams(
-              getMonthPeriod(timeSpinner, periodComboBox),
+              timePeriodPanel.getMonthPeriod(),
               marginSpinner.doubleValue() / 100.
       );
     }
 
     private void load(Properties properties) {
       PropertiesUtils.loadDouble(properties, "margin").ifPresent(marginSpinner::setValue);
-      PropertiesUtils.loadInt(properties, "time").ifPresent(timeSpinner::setValue);
-      PropertiesUtils.loadEnum(properties, "period", TimePeriod::valueOf).ifPresent(periodComboBox::setSelectedItem);
+      PropertiesUtils.loadInt(properties, "time").ifPresent(timePeriodPanel::setTime);
+      PropertiesUtils.loadEnum(properties, "period", TimePeriod::valueOf).ifPresent(timePeriodPanel::setPeriod);
     }
 
     private Properties store() {
       Properties properties = new Properties();
 
       properties.put("margin", marginSpinner.stringValue());
-      properties.put("time", timeSpinner.stringValue());
-      properties.put("period", String.valueOf(periodComboBox.getSelectedItem()));
+      properties.put("time", timePeriodPanel.getTimeString());
+      PropertiesUtils.storeEnum(properties, "period", timePeriodPanel.getPeriod());
 
       return properties;
     }
   }
 
   public void load(Properties properties) {
-    PropertiesUtils.loadInt(properties, "loanValue").ifPresent(loanValueSpinner::setValue);
-    PropertiesUtils.loadEnum(properties, "loanTimePeriod", TimePeriod::valueOf).ifPresent(loanTimePeriodComboBox::setSelectedItem);
-    PropertiesUtils.loadInt(properties, "loanTime").ifPresent(loanTimeSpinner::setValue);
+    PropertiesUtils.loadDouble(properties, "loanValue").ifPresent(loanValueSpinner::setValue);
+    PropertiesUtils.loadEnum(properties, "loanTimePeriod", TimePeriod::valueOf).ifPresent(loanTimePanel::setPeriod);
+    PropertiesUtils.loadInt(properties, "loanTime").ifPresent(loanTimePanel::setTime);
     PropertiesUtils.loadDouble(properties, "margin").ifPresent(marginSpinner::setValue);
     PropertiesUtils.loadDouble(properties, "baseRate").ifPresent(baseRateSpinner::setValue);
     PropertiesUtils.loadDouble(properties, "provision").ifPresent(provisionSpinner::setValue);
-    PropertiesUtils.loadInt(properties, "otherStartCosts").ifPresent(otherStartCostsSpinner::setValue);
+    PropertiesUtils.loadDouble(properties, "otherStartCosts").ifPresent(otherStartCostsSpinner::setValue);
     PropertiesUtils.loadEnum(properties, "installmentType", InstallmentType::valueOf).ifPresent(installmentTypeComboBox::setSelectedItem);
     PropertiesUtils.loadDate(properties, "payment").ifPresent(paymentSpinner::setValue);
     PropertiesUtils.loadDate(properties, "firstInstallment").ifPresent(firstInstallmentSpinner::setValue);
@@ -549,17 +498,17 @@ public class MortgageOptionsPanel extends JPanel {
 
     PropertiesUtils.loadEnum(properties, "estatePeriod", TimePeriod::valueOf).ifPresent(estatePeriodComboBox::setSelectedItem);
     PropertiesUtils.loadDouble(properties, "estateValue").ifPresent(estateValueSpinner::setValue);
-    PropertiesUtils.loadInt(properties, "estateAmount").ifPresent(estateAmountSpinner::setValue);
+    PropertiesUtils.loadDouble(properties, "estateAmount").ifPresent(estateAmountSpinner::setValue);
     PropertiesUtils.loadBoolean(properties, "estateAmountEqualsMortgageValue").ifPresent(estateAmountEqualsMortgageValueCheckBox::setSelected);
 
     PropertiesUtils.loadBoolean(properties, "lifeInsurance").ifPresent(lifeInsuranceCheckBox::setSelected);
     PropertiesUtils.loadEnum(properties, "lifePeriod", TimePeriod::valueOf).ifPresent(lifePeriodComboBox::setSelectedItem);
     PropertiesUtils.loadDouble(properties, "lifeValue").ifPresent(lifeValueSpinner::setValue);
-    PropertiesUtils.loadInt(properties, "lifeAmount").ifPresent(lifeAmountSpinner::setValue);
+    PropertiesUtils.loadDouble(properties, "lifeAmount").ifPresent(lifeAmountSpinner::setValue);
     PropertiesUtils.loadBoolean(properties, "lifeAmountEqualsMortgageValue").ifPresent(lifeAmountEqualsMortgageValueCheckBox::setSelected);
     PropertiesUtils.loadBoolean(properties, "lifeInAdvance").ifPresent(lifeInAdvanceCheckBox::setSelected);
-    PropertiesUtils.loadEnum(properties, "lifeInAdvanceTimePeriod", TimePeriod::valueOf).ifPresent(lifeInAdvanceTimePeriodComboBox::setSelectedItem);
-    PropertiesUtils.loadInt(properties, "lifeInAdvanceTime").ifPresent(lifeInAdvanceTimeSpinner::setValue);
+    PropertiesUtils.loadEnum(properties, "lifeInAdvanceTimePeriod", TimePeriod::valueOf).ifPresent(lifeInAdvanceTimePanel::setPeriod);
+    PropertiesUtils.loadInt(properties, "lifeInAdvanceTime").ifPresent(lifeInAdvanceTimePanel::setTime);
     PropertiesUtils.loadBoolean(properties, "lifeValueInAdvance").ifPresent(lifeValueInAdvanceCheckBox::setSelected);
     PropertiesUtils.loadDouble(properties, "lifeValueInAdvanceValue").ifPresent(lifeValueInAdvanceValueSpinner::setValue);
 
@@ -567,10 +516,12 @@ public class MortgageOptionsPanel extends JPanel {
     PropertiesUtils.loadDouble(properties, "loan2PercentValue").ifPresent(loan2PercentValueSpinner::setValue);
 
     PropertiesUtils.loadBoolean(properties, "excess").ifPresent(excessCheckBox::setSelected);
-    PropertiesUtils.loadEnum(properties, "excessFromPeriod", TimePeriod::valueOf).ifPresent(excessFromPeriodComboBox::setSelectedItem);
-    PropertiesUtils.loadInt(properties, "excessFrom").ifPresent(excessFromSpinner::setValue);
+    PropertiesUtils.loadEnum(properties, "excessFromPeriod", TimePeriod::valueOf).ifPresent(excessFromTimePanel::setPeriod);
+    PropertiesUtils.loadInt(properties, "excessFrom").ifPresent(excessFromTimePanel::setTime);
     PropertiesUtils.loadEnum(properties, "excessValuePeriod", TimePeriod::valueOf).ifPresent(excessValuePeriodComboBox::setSelectedItem);
-    PropertiesUtils.loadInt(properties, "excessValue").ifPresent(excessValueSpinner::setValue);
+    PropertiesUtils.loadDouble(properties, "excessValue").ifPresent(excessValueSpinner::setValue);
+    PropertiesUtils.loadDouble(properties, "excessToValue").ifPresent(excessToValueSpinner::setValue);
+    PropertiesUtils.loadBoolean(properties, "excessToValueSelected").ifPresent(excessToValueRadio::setSelected);
 
     PropertiesUtils.loadStream(properties, "promotions")
             .forEach(props -> addPromotionPanel().load(props));
@@ -588,8 +539,8 @@ public class MortgageOptionsPanel extends JPanel {
     Properties properties = new Properties();
 
     properties.put("loanValue", loanValueSpinner.stringValue());
-    properties.put("loanTime", loanTimeSpinner.stringValue());
-    PropertiesUtils.storeEnum(properties, "loanTimePeriod", loanTimePeriodComboBox.getSelectedItem());
+    properties.put("loanTime", loanTimePanel.getTimeString());
+    PropertiesUtils.storeEnum(properties, "loanTimePeriod", loanTimePanel.getPeriod());
     properties.put("margin", marginSpinner.stringValue());
     properties.put("baseRate", baseRateSpinner.stringValue());
     properties.put("provision", provisionSpinner.stringValue());
@@ -610,8 +561,8 @@ public class MortgageOptionsPanel extends JPanel {
     properties.put("lifeAmount", lifeAmountSpinner.stringValue());
     properties.put("lifeAmountEqualsMortgageValue", Boolean.toString(lifeAmountEqualsMortgageValueCheckBox.isSelected()));
     properties.put("lifeInAdvance", Boolean.toString(lifeInAdvanceCheckBox.isSelected()));
-    properties.put("lifeInAdvanceTime", lifeInAdvanceTimeSpinner.stringValue());
-    PropertiesUtils.storeEnum(properties, "lifeInAdvanceTimePeriod", lifeInAdvanceTimePeriodComboBox.getSelectedItem());
+    properties.put("lifeInAdvanceTime", lifeInAdvanceTimePanel.getTimeString());
+    PropertiesUtils.storeEnum(properties, "lifeInAdvanceTimePeriod", lifeInAdvanceTimePanel.getPeriod());
     properties.put("lifeValueInAdvance", Boolean.toString(lifeValueInAdvanceCheckBox.isSelected()));
     properties.put("lifeValueInAdvanceValue", lifeValueInAdvanceValueSpinner.stringValue());
 
@@ -621,10 +572,12 @@ public class MortgageOptionsPanel extends JPanel {
     properties.put("loan2PercentValue", loan2PercentValueSpinner.stringValue());
 
     properties.put("excess", Boolean.toString(excessCheckBox.isSelected()));
-    properties.put("excessFrom", excessFromSpinner.stringValue());
-    PropertiesUtils.storeEnum(properties, "excessFromPeriod", excessFromPeriodComboBox.getSelectedItem());
+    properties.put("excessFrom", excessFromTimePanel.getTimeString());
+    PropertiesUtils.storeEnum(properties, "excessFromPeriod", excessFromTimePanel.getPeriod());
     properties.put("excessValue", excessValueSpinner.stringValue());
     PropertiesUtils.storeEnum(properties, "excessValuePeriod", excessValuePeriodComboBox.getSelectedItem());
+    properties.put("excessToValue", excessToValueSpinner.stringValue());
+    properties.put("excessToValueSelected", Boolean.toString(excessToValueRadio.isSelected()));
 
     return properties;
   }

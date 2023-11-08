@@ -9,7 +9,7 @@ import java.util.Date;
 import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.NONE)
-public class DateUtils {
+public final class DateUtils {
   private static final List<LocalDate> CONST_HOLIDAYS = List.of(
           LocalDate.of(1970, Month.JANUARY, 1),
           LocalDate.of(1970, Month.JANUARY, 6),

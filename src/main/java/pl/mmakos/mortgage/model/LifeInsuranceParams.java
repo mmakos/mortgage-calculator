@@ -1,4 +1,4 @@
 package pl.mmakos.mortgage.model;
 
-public record LifeInsuranceParams(double value, int amount, TimePeriod period, int inAdvance, double inAdvanceValue) {
+public record LifeInsuranceParams(double value, double amount, TimePeriod period, int inAdvancePeriod, double inAdvanceValue) {
 }

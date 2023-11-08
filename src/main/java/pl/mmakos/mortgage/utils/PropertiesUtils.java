@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @NoArgsConstructor(access = AccessLevel.NONE)
-public class PropertiesUtils {
+public final class PropertiesUtils {
   public static void storeStream(Stream<Properties> stream, Properties properties, String prefix) {
     int[] counter = new int[1];
     stream.map(StreamUtils::stream)
