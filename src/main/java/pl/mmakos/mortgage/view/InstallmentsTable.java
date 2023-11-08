@@ -1,5 +1,6 @@
 package pl.mmakos.mortgage.view;
 
+import pl.mmakos.mortgage.model.ExplainedValue;
 import pl.mmakos.mortgage.model.InstallmentsTableModel;
 
 import javax.swing.*;
@@ -43,13 +44,30 @@ public class InstallmentsTable extends JTable {
   }
 
   private TableCellRenderer formatCellRenderer(NumberFormat numberFormat) {
-    return new DefaultTableCellRenderer() {
+    return new ExplainedCellRenderer() {
       @Override
       public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-        label.setText(numberFormat.format(((Number) value).doubleValue()));
+        if (value instanceof ExplainedValue<?> explainedValue) {
+          label.setText(numberFormat.format(((Number) explainedValue.value()).doubleValue()));
+        } else {
+          label.setText(numberFormat.format(((Number) value).doubleValue()));
+        }
         return label;
       }
     };
+  }
+
+  private static class ExplainedCellRenderer extends DefaultTableCellRenderer {
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+      ExplainedValue<?> explainedValue = (ExplainedValue<?>) value;
+      JLabel label = (JLabel) super.getTableCellRendererComponent(table, explainedValue.value(), isSelected, hasFocus, row, column);
+      String explanation = explainedValue.explanation();
+      if (explanation != null) {
+        label.setToolTipText(explanation);
+      }
+      return label;
+    }
   }
 }

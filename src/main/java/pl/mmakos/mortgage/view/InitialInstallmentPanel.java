@@ -10,12 +10,12 @@ import java.text.NumberFormat;
 import static pl.mmakos.mortgage.MortgageCalculator.BUNDLE;
 
 public class InitialInstallmentPanel extends JPanel {
-  private final JTextField sumField = new JTextField();
+  private final ExplainedField sumField = new ExplainedField(NumberFormat.getCurrencyInstance());
   private final JTextField dateField = new JTextField();
-  private final JTextField provisionField = new JTextField();
-  private final JTextField otherCostsField = new JTextField();
-  private final JTextField estateInsuranceField = new JTextField();
-  private final JTextField lifeInsuranceField = new JTextField();
+  private final ExplainedField provisionField = new ExplainedField(NumberFormat.getCurrencyInstance());
+  private final ExplainedField otherCostsField = new ExplainedField(NumberFormat.getCurrencyInstance());
+  private final ExplainedField estateInsuranceField = new ExplainedField(NumberFormat.getCurrencyInstance());
+  private final ExplainedField lifeInsuranceField = new ExplainedField(NumberFormat.getCurrencyInstance());
 
   public InitialInstallmentPanel() {
     setLayout(new GridBagLayout());
@@ -26,12 +26,11 @@ public class InitialInstallmentPanel extends JPanel {
   public void update(Installment initialInstallment) {
     dateField.setText(initialInstallment.date().toString());
 
-    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance();
-    sumField.setText(currencyFormatter.format(initialInstallment.sumAll()));
-    provisionField.setText(currencyFormatter.format(initialInstallment.interest()));
-    otherCostsField.setText(currencyFormatter.format(initialInstallment.capital()));
-    estateInsuranceField.setText(currencyFormatter.format(initialInstallment.estateInsurance()));
-    lifeInsuranceField.setText(currencyFormatter.format(initialInstallment.lifeInsurance()));
+    sumField.setValue(initialInstallment.sumAll().with("panel.paymentParams.sum.exp"));
+    provisionField.setValue(initialInstallment.interest());
+    otherCostsField.setValue(initialInstallment.capital());
+    estateInsuranceField.setValue(initialInstallment.estateInsurance());
+    lifeInsuranceField.setValue(initialInstallment.lifeInsurance());
   }
 
   private void init() {

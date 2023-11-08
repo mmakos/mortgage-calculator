@@ -367,8 +367,9 @@ public class MortgageOptionsPanel extends JPanel {
     excessToValueRadio.setText(BUNDLE.getString("panel.excessPayment.toValue"));
     excessCheckBox.setText(BUNDLE.getString("panel.excessPayment.enable"));
 
-    excessFromTimePanel.setSpinnerNumberModel(new SpinnerNumberModel(37, 1, 420, 1));
+    excessFromTimePanel.setSpinnerNumberModel(new SpinnerNumberModel(3, 1, 35, 1));
     excessFromTimePanel.setPeriod(TimePeriod.MONTH);
+    excessFromTimePanel.setTime(37);
     excessFromTimePanel.setComboBoxRenderer(new CustomNameComboBoxRenderer<>(TimePeriod::getSingular));
 
     excessValueSpinner.setModel(new SpinnerNumberModel(1000., 0., 100_000., 100.));
@@ -381,6 +382,8 @@ public class MortgageOptionsPanel extends JPanel {
     valueRadioGroup.add(excessToValueRadio);
 
     excessValueRadio.setSelected(true);
+    excessValueRadio.setEnabled(false);
+    excessToValueRadio.setEnabled(false);
     excessFromTimePanel.setEnabled(false);
     excessValueSpinner.setEnabled(false);
     excessValuePeriodComboBox.setEnabled(false);

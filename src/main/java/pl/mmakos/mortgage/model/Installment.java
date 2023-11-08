@@ -2,6 +2,8 @@ package pl.mmakos.mortgage.model;
 
 import pl.mmakos.mortgage.utils.DateUtils;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -20,44 +22,51 @@ import java.util.NoSuchElementException;
  * @param installmentType type of installment (EQUAL or DECREASING)
  * @param loanParams      all mortgage params
  */
-public record Installment(int number, double capital, double interest, double sup2percent,
-                          double estateInsurance, double lifeInsurance, double excess, LocalDate date,
-                          double capitalLeft, double margin, InstallmentType installmentType, LoanParams loanParams)
+public record Installment(int number, ExplainedValue<Double> capital, ExplainedValue<Double> interest, ExplainedValue<Double> sup2percent,
+                          ExplainedValue<Double> estateInsurance, ExplainedValue<Double> lifeInsurance, ExplainedValue<Double> excess, LocalDate date,
+                          ExplainedValue<Double> capitalLeft, ExplainedValue<Double> margin, InstallmentType installmentType, LoanParams loanParams)
         implements Iterable<Installment> {
+
+  private static final double MORTGAGE_PCC_3 = 19.;
+  private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance();
+  private static final NumberFormat PERCENTAGE_FORMAT = new DecimalFormat("#.###### '%'");
 
   public static Installment initial(LoanParams loanParams) {
     return new Installment(0,
-            loanParams.general().otherCosts(),
-            loanParams.general().provision() * loanParams.general().loanValue(),
-            0.,
+            ExplainedValue.of(loanParams.general().otherCosts() + MORTGAGE_PCC_3,
+                    "panel.paymentParams.otherCosts.exp", CURRENCY_FORMAT.format(loanParams.general().otherCosts())),
+            ExplainedValue.of(loanParams.general().provision() * loanParams.general().loanValue(),
+                    "panel.paymentParams.provision.exp", CURRENCY_FORMAT.format(loanParams.general().loanValue()),
+                    PERCENTAGE_FORMAT.format(loanParams.general().provision() * 100.)),
+            ExplainedValue.of(0.),
             getEstateInsurance(0, loanParams),
             getLifeInsurance(0, loanParams),
-            0.,
+            ExplainedValue.of(0.),
             loanParams.general().paymentDate(),
-            loanParams.general().loanValue(),
-            0.,
+            ExplainedValue.of(loanParams.general().loanValue()),
+            ExplainedValue.of(0.),
             loanParams.getInstallmentType(0),
             loanParams);
   }
 
-  public double capitalAndInterest() {
-    return capital + interest;
+  public ExplainedValue<Double> capitalAndInterest() {
+    return ExplainedValue.of(capital.value() + interest.value());
   }
 
-  public double sumTo2Percent() {
-    return capitalAndInterest() - sup2percent;
+  public ExplainedValue<Double> sumTo2Percent() {
+    return ExplainedValue.of(capital.value() + interest.value() - sup2percent.value());
   }
 
-  public double sumToInsurances() {
-    return sumTo2Percent() + estateInsurance + lifeInsurance;
+  public ExplainedValue<Double> sumToInsurances() {
+    return ExplainedValue.of(capital.value() + interest.value() - sup2percent.value() + estateInsurance.value() + lifeInsurance.value());
   }
 
-  public double sumAll() {
-    return sumToInsurances() + excess;
+  public ExplainedValue<Double> sumAll() {
+    return ExplainedValue.of(capital.value() + interest.value() - sup2percent.value() + estateInsurance.value() + lifeInsurance.value() + excess.value());
   }
 
-  public double getRate() {
-    return margin + loanParams.general().baseRate();
+  public ExplainedValue<Double> getRate() {
+    return ExplainedValue.of(margin.value() + loanParams.general().baseRate());
   }
 
   public Iterator<Installment> iterator() {
@@ -66,7 +75,7 @@ public record Installment(int number, double capital, double interest, double su
 
       @Override
       public boolean hasNext() {
-        return installment.number + 1 <= installment.loanParams.general().loanInstallments() && installment.capitalLeft > 0.;
+        return installment.number + 1 <= installment.loanParams.general().loanInstallments() && installment.capitalLeft.value() > 0.;
       }
 
       @Override
@@ -79,7 +88,7 @@ public record Installment(int number, double capital, double interest, double su
 
   public Installment next() {
     int installmentNumber = number + 1;
-    if (capitalLeft <= 0) {
+    if (capitalLeft.value() <= 0) {
       throw new NoSuchElementException("Cannot calculate " + installmentNumber +
               " installment because there is no capital left");
     }
@@ -96,26 +105,26 @@ public record Installment(int number, double capital, double interest, double su
     double rate = yearFactor * yearRate;
     double[] newCapitalAndInterest = getNextCapitalAndInterest(yearRate, rate, newType);
     double sup2percent = loanParams.loan2Percent() != null && installmentNumber <= 120 ?
-            capitalLeft * (loanParams.loan2Percent().rate() - .02) / 12. : 0.;
-    double newCapitalLeft = capitalLeft - newCapitalAndInterest[0];
-    double newEstateInsurance = getEstateInsurance(installmentNumber, loanParams);
-    double newLifeInsurance = getLifeInsurance(installmentNumber, loanParams);
+            capitalLeft.value() * (loanParams.loan2Percent().rate() - .02) / 12. : 0.;
+    double newCapitalLeft = capitalLeft.value() - newCapitalAndInterest[0];
+    ExplainedValue<Double> newEstateInsurance = getEstateInsurance(installmentNumber, loanParams);
+    ExplainedValue<Double> newLifeInsurance = getLifeInsurance(installmentNumber, loanParams);
     double newExcess = getExcess(installmentNumber,
-            newCapitalAndInterest[0] + newCapitalAndInterest[1] - sup2percent + newEstateInsurance + newLifeInsurance,
+            newCapitalAndInterest[0] + newCapitalAndInterest[1] - sup2percent + newEstateInsurance.value() + newLifeInsurance.value(),
             loanParams.excesses());
     newExcess = Math.min(newExcess, newCapitalLeft);
 
     return new Installment(
             installmentNumber,
-            newCapitalAndInterest[0],
-            newCapitalAndInterest[1],
-            sup2percent,
+            ExplainedValue.of(newCapitalAndInterest[0]),
+            ExplainedValue.of(newCapitalAndInterest[1]),
+            ExplainedValue.of(sup2percent),
             newEstateInsurance,
             newLifeInsurance,
-            newExcess,
+            ExplainedValue.of(newExcess),
             newDate,
-            newCapitalLeft - newExcess,
-            newMargin,
+            ExplainedValue.of(newCapitalLeft - newExcess),
+            ExplainedValue.of(newMargin),
             newType,
             loanParams
     );
@@ -125,16 +134,16 @@ public record Installment(int number, double capital, double interest, double su
     int installmentsLeft = loanParams.general().loanInstallments() - number;
     if (type == InstallmentType.EQUAL) {
       rate = yearRate / 12;
-      double interest = capitalLeft * rate;
+      double interest = capitalLeft.value() * rate;
       double p1n = Math.pow(1 + rate, installmentsLeft);
       return new double[]{
-              capitalLeft * p1n * rate / (p1n - 1) - interest,
+              capitalLeft.value() * p1n * rate / (p1n - 1) - interest,
               interest
       };
     } else {
       return new double[]{
-              capitalLeft / installmentsLeft,
-              capitalLeft * rate
+              capitalLeft.value() / installmentsLeft,
+              capitalLeft.value() * rate
       };
     }
   }
@@ -151,41 +160,41 @@ public record Installment(int number, double capital, double interest, double su
     }
   }
 
-  private static double getEstateInsurance(int number, LoanParams loanParams) {
+  private static ExplainedValue<Double> getEstateInsurance(int number, LoanParams loanParams) {
     // Last installment - no insurance
-    if (number == loanParams.general().loanInstallments()) return 0.;
+    if (number == loanParams.general().loanInstallments()) return ExplainedValue.of(0.);
     EstateInsuranceParams estateInsurance = loanParams.estateInsurance();
     if (estateInsurance.period() == TimePeriod.MONTH) {
-      return estateInsurance.value() * estateInsurance.amount() / 12.;
+      return ExplainedValue.of(estateInsurance.value() * estateInsurance.amount() / 12., "panel.paymentParams.estateInsurance.exp.month",
+              CURRENCY_FORMAT.format(estateInsurance.amount()), PERCENTAGE_FORMAT.format(estateInsurance.value() * 100.));
     } else if (number % 12 == 0) {
-      return estateInsurance.value() * estateInsurance.amount();
+      return ExplainedValue.of(estateInsurance.value() * estateInsurance.amount(), "panel.paymentParams.estateInsurance.exp.year",
+              CURRENCY_FORMAT.format(estateInsurance.amount()), PERCENTAGE_FORMAT.format(estateInsurance.value() * 100.));
     }
-    return 0.;
+    return ExplainedValue.of(0.);
   }
 
-  private static double getLifeInsurance(int number, LoanParams loanParams) {
+  private static ExplainedValue<Double> getLifeInsurance(int number, LoanParams loanParams) {
     // Last installment - no insurance
     LifeInsuranceParams lifeInsurance = loanParams.lifeInsurance();
-    if (lifeInsurance == null || number >= loanParams.general().loanInstallments()) return 0.;
+    if (lifeInsurance == null || number >= loanParams.general().loanInstallments()) return ExplainedValue.of(0.);
     if (lifeInsurance.inAdvancePeriod() > 0) {
       if (number == 0) {
-        return lifeInsurance.inAdvanceValue() * lifeInsurance.amount() * lifeInsurance.inAdvancePeriod() / 12.;
+        return ExplainedValue.of(lifeInsurance.inAdvanceValue() * lifeInsurance.amount() * lifeInsurance.inAdvancePeriod() / 12.,
+                "panel.paymentParams.lifeInsurance.exp.inAdvance", lifeInsurance.inAdvancePeriod(),
+                CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENTAGE_FORMAT.format(lifeInsurance.inAdvanceValue() * 100.));
       } else if (number < lifeInsurance.inAdvancePeriod()) {
-        return 0.;
+        return ExplainedValue.of(0., "panel.paymentParams.lifeInsurance.exp.noDuringAdvancePeriod");
       }
     }
     if (lifeInsurance.period() == TimePeriod.MONTH) {
-      return lifeInsurance.value() * lifeInsurance.amount() / 12.;
+      return ExplainedValue.of(lifeInsurance.value() * lifeInsurance.amount() / 12., "panel.paymentParams.lifeInsurance.exp.month",
+              CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENTAGE_FORMAT.format(lifeInsurance.value() * 100.));
     } else if (number % 12 == lifeInsurance.inAdvancePeriod() % 12) {
       int months = Math.min(12, loanParams.general().loanInstallments() - number);
-      return lifeInsurance.value() * lifeInsurance.amount() * months / 12.;
+      return ExplainedValue.of(lifeInsurance.value() * lifeInsurance.amount() * months / 12., "panel.paymentParams.lifeInsurance.exp.year",
+              CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENTAGE_FORMAT.format(lifeInsurance.value() * 100.));
     }
-    return 0.;
-  }
-
-  @Override
-  public String toString() {
-    return String.format("Rata %d\tPłatna w dniu %s\tStopa: %.2f%%\tKapitał: %.2f zł\tOdsetki: %.2f zł\tDopłata: %.2f zł\tOdsetki po dopłacie: %.2f zł\tRazem: %.2f zł\tZostało: %.2f zł",
-            number, date, (margin + loanParams.general().baseRate()) * 100., capital, interest, sup2percent, interest - sup2percent, capital + interest - sup2percent, capitalLeft);
+    return ExplainedValue.of(0.);
   }
 }

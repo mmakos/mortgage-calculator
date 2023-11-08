@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
@@ -20,6 +21,7 @@ public class MortgageCalculator {
 
   public static void main(String[] args) {
     setLookAndFeel();
+    Locale.setDefault(new Locale("pl", "PL"));
 
     Properties properties = new Properties();
     try (InputStream stream = Files.newInputStream(Path.of(System.getenv("APPDATA"), CONFIG_SAVE_FILE))) {
@@ -33,6 +35,7 @@ public class MortgageCalculator {
     mainFrame.setSize(1400, 900);
     mainFrame.setExtendedState(mainFrame.getExtendedState() | Frame.MAXIMIZED_BOTH);
     mainFrame.setVisible(true);
+    mainFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
   }
 
   private static void saveConfig(Properties properties) {
