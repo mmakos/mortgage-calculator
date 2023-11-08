@@ -9,17 +9,20 @@ public record LoanParams(GeneralLoanParams general,
                          PromotionParams[] promotion,
                          Loan2PercentParams loan2Percent,
                          ExcessesParams excesses) {
-  public double getMargin(int number) {
+  public ExplainedValue<Double> getMargin(int number) {
     return PromotionParams.promotionFor(number, promotion)
             .map(PromotionParams::margin)
-            .orElse(general.margin());
+            .map(m -> ExplainedValue.of(m, "explanation.margin.promotion"))
+            .orElseGet(() -> ExplainedValue.of(general.margin(), "explanation.margin"));
   }
 
-  public InstallmentType getInstallmentType(int number) {
+  public ExplainedValue<InstallmentType> getInstallmentType(int number) {
     if (loan2Percent == null) {
-      return general.installmentType();
+      return ExplainedValue.of(general.installmentType());
     }
-    return number <= 120 ? InstallmentType.DECREASING : general.installmentType();
+    return number <= 120 ?
+            ExplainedValue.of(InstallmentType.DECREASING, "explanation.installmentType.loan2percent") :
+            ExplainedValue.of(general.installmentType(), "explanation.installmentType.loan2percent.after");
   }
 
   @Override

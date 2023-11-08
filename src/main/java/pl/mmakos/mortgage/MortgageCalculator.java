@@ -22,6 +22,7 @@ public class MortgageCalculator {
   public static void main(String[] args) {
     setLookAndFeel();
     Locale.setDefault(new Locale("pl", "PL"));
+    ToolTipManager.sharedInstance().setDismissDelay(60_000);
 
     Properties properties = new Properties();
     try (InputStream stream = Files.newInputStream(Path.of(System.getenv("APPDATA"), CONFIG_SAVE_FILE))) {

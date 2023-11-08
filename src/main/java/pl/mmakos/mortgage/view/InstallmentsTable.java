@@ -20,6 +20,7 @@ public class InstallmentsTable extends JTable {
   }
 
   private void setRenderers() {
+    columnModel.getColumn(DATE_COLUMN).setCellRenderer(new ExplainedCellRenderer());
     columnModel.getColumn(CAPITAL_COLUMN).setCellRenderer(currencyCellRenderer());
     columnModel.getColumn(INTEREST_COLUMN).setCellRenderer(currencyCellRenderer());
     columnModel.getColumn(CAPITAL_AND_INTEREST_COLUMN).setCellRenderer(currencyCellRenderer());
@@ -33,6 +34,7 @@ public class InstallmentsTable extends JTable {
     columnModel.getColumn(LEFT_COLUMN).setCellRenderer(currencyCellRenderer());
     columnModel.getColumn(MARGIN_COLUMN).setCellRenderer(percentageCellRenderer());
     columnModel.getColumn(RATE_COLUMN).setCellRenderer(percentageCellRenderer());
+    columnModel.getColumn(TYPE_COLUMN).setCellRenderer(new ExplainedCellRenderer());
   }
 
   private TableCellRenderer currencyCellRenderer() {
