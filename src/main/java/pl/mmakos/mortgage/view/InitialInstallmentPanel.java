@@ -5,7 +5,6 @@ import pl.mmakos.mortgage.model.Installment;
 import pl.mmakos.mortgage.utils.ViewUtils;
 
 import javax.swing.*;
-import java.text.NumberFormat;
 
 import static pl.mmakos.mortgage.MortgageCalculator.BUNDLE;
 import static pl.mmakos.mortgage.MortgageCalculator.CURRENCY_FORMAT;

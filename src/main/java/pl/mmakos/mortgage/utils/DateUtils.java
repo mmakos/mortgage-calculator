@@ -22,7 +22,7 @@ public final class DateUtils {
           LocalDate.of(1970, Month.DECEMBER, 26)
   );
 
-  @SuppressWarnings("RedundantIfStatement")
+  @SuppressWarnings({"RedundantIfStatement", "java:S1126"})
   public static boolean isHoliday(LocalDate localDate) {
     if (localDate.getDayOfWeek() == DayOfWeek.SATURDAY || localDate.getDayOfWeek() == DayOfWeek.SUNDAY) return true;
     if (CONST_HOLIDAYS.contains(localDate.withYear(1970))) return true;
