@@ -1,4 +1,4 @@
-# Zaawansowany kalkulator rat kredytu hipotecznego ~~oraz RRSO~~
+# Zaawansowany kalkulator rat kredytu hipotecznego oraz RRSO
 
 Pozwala obliczyć dokładnie raty kredytu biorąc pod uwagę:
 - suma i okres kredytowania

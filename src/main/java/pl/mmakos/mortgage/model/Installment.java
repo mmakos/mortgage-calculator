@@ -122,6 +122,7 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
               " installment because installments count is " + loanParams.general().loanInstallments());
     }
 
+    boolean isLastRate = installmentNumber == loanParams().general().loanInstallments();
     ExplainedValue<LocalDate> newDate = loanParams.general().getInstallmentDate(installmentNumber);
     double yearFactor = DateUtils.getYearFactor(date.value(), newDate.value());
     ExplainedValue<InstallmentType> newType = loanParams.getInstallmentType(installmentNumber);
@@ -129,7 +130,7 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
     double yearRate = newMargin.value() + loanParams.general().baseRate();
     ExplainedValue<Double>[] newCapitalAndInterest = getNextCapitalAndInterest(yearRate, yearFactor, newType.value(), date.value().until(newDate.value(), ChronoUnit.DAYS));
     ExplainedValue<Double> sup2percent = getSup2percent(installmentNumber);
-    double newCapitalLeft = capitalLeft.value() - newCapitalAndInterest[0].value();
+    double newCapitalLeft = isLastRate ? 0. : capitalLeft.value() - newCapitalAndInterest[0].value();
     ExplainedValue<Double> newEstateInsurance = getEstateInsurance(installmentNumber, loanParams);
     ExplainedValue<Double> newLifeInsurance = getLifeInsurance(installmentNumber, loanParams);
     ExplainedValue<Double> newExcess = getExcess(installmentNumber,
@@ -203,7 +204,7 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
     if (excesses == null || number < excesses.from()) return ExplainedValue.of(0.);
     if (excesses.toValue()) {
       double excess = excesses.value() - sumInstallment;
-      if (excess < 0) {
+      if (excess < 0.) {
         return ExplainedValue.of(0., "explanation.excess.zero", CURRENCY_FORMAT.format(excesses.value()));
       } else {
         return ExplainedValue.of(excess, "explanation.excess.toValue",
