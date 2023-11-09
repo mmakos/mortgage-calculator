@@ -3,9 +3,9 @@ package pl.mmakos.mortgage.view;
 import pl.mmakos.mortgage.utils.DateUtils;
 
 import javax.swing.*;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.time.LocalDate;
+
+import static pl.mmakos.mortgage.MortgageCalculator.CURRENCY_FORMAT;
 
 public interface Spinner {
   class Int extends JSpinner {
@@ -46,8 +46,7 @@ public interface Spinner {
   class Currency extends Double {
     @Override
     protected JComponent createEditor(SpinnerModel model) {
-      DecimalFormat currencyFormat = (DecimalFormat) NumberFormat.getCurrencyInstance();
-      return new NumberEditor(this, currencyFormat.toPattern());
+      return new NumberEditor(this, CURRENCY_FORMAT.toPattern());
     }
   }
 }

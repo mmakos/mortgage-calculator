@@ -2,12 +2,13 @@ package pl.mmakos.mortgage.model;
 
 import pl.mmakos.mortgage.utils.DateUtils;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import static pl.mmakos.mortgage.MortgageCalculator.CURRENCY_FORMAT;
+import static pl.mmakos.mortgage.MortgageCalculator.PERCENT_FORMAT;
 
 /**
  * @param number          installment number (from 1). Number 0 is special installment paid on payment (no capital and interest, just insurances, provision and other initial costs).
@@ -23,15 +24,16 @@ import java.util.NoSuchElementException;
  * @param installmentType type of installment (EQUAL or DECREASING)
  * @param loanParams      all mortgage params
  */
-public record Installment(int number, ExplainedValue<Double> capital, ExplainedValue<Double> interest, ExplainedValue<Double> sup2percent,
-                          ExplainedValue<Double> estateInsurance, ExplainedValue<Double> lifeInsurance, ExplainedValue<Double> excess,
-                          ExplainedValue<LocalDate> date, ExplainedValue<Double> capitalLeft, ExplainedValue<Double> margin,
+public record Installment(int number, ExplainedValue<Double> capital, ExplainedValue<Double> interest,
+                          ExplainedValue<Double> sup2percent,
+                          ExplainedValue<Double> estateInsurance, ExplainedValue<Double> lifeInsurance,
+                          ExplainedValue<Double> excess,
+                          ExplainedValue<LocalDate> date, ExplainedValue<Double> capitalLeft,
+                          ExplainedValue<Double> margin,
                           ExplainedValue<InstallmentType> installmentType, LoanParams loanParams)
         implements Iterable<Installment> {
 
   private static final double MORTGAGE_PCC_3 = 19.;
-  private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance();
-  private static final NumberFormat PERCENTAGE_FORMAT = new DecimalFormat("#.###### '%'");
 
   public static Installment initial(LoanParams loanParams) {
     return new Installment(0,
@@ -39,7 +41,7 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
                     "explanation.otherCosts", CURRENCY_FORMAT.format(loanParams.general().otherCosts())),
             ExplainedValue.of(loanParams.general().provision() * loanParams.general().loanValue(),
                     "explanation.provision", CURRENCY_FORMAT.format(loanParams.general().loanValue()),
-                    PERCENTAGE_FORMAT.format(loanParams.general().provision() * 100.)),
+                    PERCENT_FORMAT.format(loanParams.general().provision() * 100.)),
             ExplainedValue.of(0.),
             getEstateInsurance(0, loanParams),
             getLifeInsurance(0, loanParams),
@@ -89,7 +91,7 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
 
   public ExplainedValue<Double> getRate() {
     return ExplainedValue.of(margin.value() + loanParams.general().baseRate(), "explanation.rate",
-            PERCENTAGE_FORMAT.format(margin.value() * 100.), PERCENTAGE_FORMAT.format(loanParams.general().baseRate() * 100.));
+            PERCENT_FORMAT.format(margin.value() * 100.), PERCENT_FORMAT.format(loanParams.general().baseRate() * 100.));
   }
 
   public Iterator<Installment> iterator() {
@@ -162,15 +164,21 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
     int installmentsLeft = loanParams.general().loanInstallments() - number;
     if (type == InstallmentType.EQUAL) {
       double rate = yearRate / 12;
-      ExplainedValue<Double> interest = ExplainedValue.of(capitalLeft.value() * rate);
+      ExplainedValue<Double> interest = ExplainedValue.of(capitalLeft.value() * rate, "explanation.equal.interest",
+              CURRENCY_FORMAT.format(capitalLeft.value()), PERCENT_FORMAT.format(yearRate * 100.));
       double p1n = Math.pow(1 + rate, installmentsLeft);
-      ExplainedValue<Double> capital = ExplainedValue.of(capitalLeft.value() * p1n * rate / (p1n - 1) - interest.value());
+      double wholeInstallment = capitalLeft.value() * p1n * rate / (p1n - 1);
+      ExplainedValue<Double> capital = ExplainedValue.of(wholeInstallment - interest.value(),
+              "explanation.equal.capital", CURRENCY_FORMAT.format(wholeInstallment),
+              CURRENCY_FORMAT.format(interest.value()), CURRENCY_FORMAT.format(wholeInstallment - interest.value()),
+              CURRENCY_FORMAT.format(capitalLeft.value()), PERCENT_FORMAT.format(rate * 100.),
+              PERCENT_FORMAT.format(yearRate * 100.), installmentsLeft);
 
       return new ExplainedValue[]{capital, interest};
     } else {
       double rate = yearFactor * yearRate;
       ExplainedValue<Double> interest = ExplainedValue.of(capitalLeft.value() * rate, "explanation.decreasing.interest",
-              CURRENCY_FORMAT.format(capitalLeft.value()), PERCENTAGE_FORMAT.format(yearRate * 100.), days);
+              CURRENCY_FORMAT.format(capitalLeft.value()), PERCENT_FORMAT.format(yearRate * 100.), days);
       ExplainedValue<Double> capital = ExplainedValue.of(capitalLeft.value() / installmentsLeft, "explanation.decreasing.capital",
               CURRENCY_FORMAT.format(capitalLeft.value()), installmentsLeft);
 
@@ -183,7 +191,7 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
       if (number <= 120) {
         return ExplainedValue.of(capitalLeft.value() * (loanParams.loan2Percent().rate() - .02) / 12.,
                 "explanation.loan2Percent",
-                CURRENCY_FORMAT.format(capitalLeft.value()), PERCENTAGE_FORMAT.format(loanParams.loan2Percent().rate() * 100.));
+                CURRENCY_FORMAT.format(capitalLeft.value()), PERCENT_FORMAT.format(loanParams.loan2Percent().rate() * 100.));
       } else {
         return ExplainedValue.of(0., "explanation.loan2Percent.end");
       }
@@ -215,10 +223,10 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
     EstateInsuranceParams estateInsurance = loanParams.estateInsurance();
     if (estateInsurance.period() == TimePeriod.MONTH) {
       return ExplainedValue.of(estateInsurance.value() * estateInsurance.amount() / 12., "explanation.estateInsurance.month",
-              CURRENCY_FORMAT.format(estateInsurance.amount()), PERCENTAGE_FORMAT.format(estateInsurance.value() * 100.));
+              CURRENCY_FORMAT.format(estateInsurance.amount()), PERCENT_FORMAT.format(estateInsurance.value() * 100.));
     } else if (number % 12 == 0) {
       return ExplainedValue.of(estateInsurance.value() * estateInsurance.amount(), "explanation.estateInsurance.year",
-              CURRENCY_FORMAT.format(estateInsurance.amount()), PERCENTAGE_FORMAT.format(estateInsurance.value() * 100.));
+              CURRENCY_FORMAT.format(estateInsurance.amount()), PERCENT_FORMAT.format(estateInsurance.value() * 100.));
     }
     return ExplainedValue.of(0.);
   }
@@ -231,18 +239,18 @@ public record Installment(int number, ExplainedValue<Double> capital, ExplainedV
       if (number == 0) {
         return ExplainedValue.of(lifeInsurance.inAdvanceValue() * lifeInsurance.amount() * lifeInsurance.inAdvancePeriod() / 12.,
                 "explanation.lifeInsurance.inAdvance", lifeInsurance.inAdvancePeriod(),
-                CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENTAGE_FORMAT.format(lifeInsurance.inAdvanceValue() * 100.));
+                CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENT_FORMAT.format(lifeInsurance.inAdvanceValue() * 100.));
       } else if (number < lifeInsurance.inAdvancePeriod()) {
         return ExplainedValue.of(0., "explanation.lifeInsurance.noDuringAdvancePeriod");
       }
     }
     if (lifeInsurance.period() == TimePeriod.MONTH) {
       return ExplainedValue.of(lifeInsurance.value() * lifeInsurance.amount() / 12., "explanation.lifeInsurance.month",
-              CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENTAGE_FORMAT.format(lifeInsurance.value() * 100.));
+              CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENT_FORMAT.format(lifeInsurance.value() * 100.));
     } else if (number % 12 == lifeInsurance.inAdvancePeriod() % 12) {
       int months = Math.min(12, loanParams.general().loanInstallments() - number);
       return ExplainedValue.of(lifeInsurance.value() * lifeInsurance.amount() * months / 12., "explanation.lifeInsurance.year",
-              CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENTAGE_FORMAT.format(lifeInsurance.value() * 100.));
+              CURRENCY_FORMAT.format(lifeInsurance.amount()), PERCENT_FORMAT.format(lifeInsurance.value() * 100.));
     }
     return ExplainedValue.of(0.);
   }

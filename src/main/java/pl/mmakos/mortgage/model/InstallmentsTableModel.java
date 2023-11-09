@@ -2,6 +2,7 @@ package pl.mmakos.mortgage.model;
 
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static pl.mmakos.mortgage.MortgageCalculator.BUNDLE;
@@ -45,9 +46,9 @@ public class InstallmentsTableModel extends AbstractTableModel {
 
   private final List<Installment> installments = new ArrayList<>();
 
-  public void setInstallments(Iterable<Installment> installments) {
+  public void setInstallments(Collection<Installment> installments) {
     this.installments.clear();
-    installments.forEach(this.installments::add);
+    this.installments.addAll(installments);
     fireTableDataChanged();
   }
 

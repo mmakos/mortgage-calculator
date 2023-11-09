@@ -10,6 +10,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.ResourceBundle;
@@ -17,6 +19,8 @@ import java.util.ResourceBundle;
 @Slf4j
 public class MortgageCalculator {
   public static final ResourceBundle BUNDLE = ResourceBundle.getBundle("pl.mmakos.mortgage.Bundle");
+  public static final DecimalFormat CURRENCY_FORMAT = (DecimalFormat) NumberFormat.getCurrencyInstance();
+  public static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("#.##### '%'");
   private static final String CONFIG_SAVE_FILE = ".mortgage-calculator.config";
 
   public static void main(String[] args) {

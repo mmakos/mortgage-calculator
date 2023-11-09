@@ -1,5 +1,6 @@
 package pl.mmakos.mortgage.view;
 
+import lombok.RequiredArgsConstructor;
 import pl.mmakos.mortgage.model.ExplainedValue;
 import pl.mmakos.mortgage.model.InstallmentsTableModel;
 
@@ -7,9 +8,10 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
+import static pl.mmakos.mortgage.MortgageCalculator.CURRENCY_FORMAT;
+import static pl.mmakos.mortgage.MortgageCalculator.PERCENT_FORMAT;
 import static pl.mmakos.mortgage.model.InstallmentsTableModel.*;
 
 public class InstallmentsTable extends JTable {
@@ -38,26 +40,28 @@ public class InstallmentsTable extends JTable {
   }
 
   private TableCellRenderer currencyCellRenderer() {
-    return formatCellRenderer(NumberFormat.getCurrencyInstance());
+    return new FormatCellRenderer(CURRENCY_FORMAT, 1.);
   }
 
   private TableCellRenderer percentageCellRenderer() {
-    return formatCellRenderer(new DecimalFormat("#.##### %"));
+    return new FormatCellRenderer(PERCENT_FORMAT, 100.);
   }
 
-  private TableCellRenderer formatCellRenderer(NumberFormat numberFormat) {
-    return new ExplainedCellRenderer() {
-      @Override
-      public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-        JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-        if (value instanceof ExplainedValue<?> explainedValue) {
-          label.setText(numberFormat.format(((Number) explainedValue.value()).doubleValue()));
-        } else {
-          label.setText(numberFormat.format(((Number) value).doubleValue()));
-        }
-        return label;
+  @RequiredArgsConstructor
+  private static class FormatCellRenderer extends ExplainedCellRenderer {
+    private final NumberFormat format;
+    private final double scale;
+
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+      JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+      if (value instanceof ExplainedValue<?> explainedValue) {
+        label.setText(format.format(((Number) explainedValue.value()).doubleValue() * scale));
+      } else {
+        label.setText(format.format(((Number) value).doubleValue() * scale));
       }
-    };
+      return label;
+    }
   }
 
   private static class ExplainedCellRenderer extends DefaultTableCellRenderer {
