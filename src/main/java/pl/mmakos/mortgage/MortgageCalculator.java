@@ -18,6 +18,9 @@ import java.util.ResourceBundle;
 
 @Slf4j
 public class MortgageCalculator {
+  static {
+    Locale.setDefault(new Locale("pl", "PL"));
+  }
   public static final ResourceBundle BUNDLE = ResourceBundle.getBundle("pl.mmakos.mortgage.Bundle");
   public static final DecimalFormat CURRENCY_FORMAT = (DecimalFormat) NumberFormat.getCurrencyInstance();
   public static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("#.##### '%'");
@@ -25,7 +28,6 @@ public class MortgageCalculator {
 
   public static void main(String[] args) {
     setLookAndFeel();
-    Locale.setDefault(new Locale("pl", "PL"));
     ToolTipManager.sharedInstance().setDismissDelay(60_000);
 
     Properties properties = new Properties();
